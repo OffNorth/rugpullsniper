@@ -9,7 +9,7 @@ directement sur Telegram.
 ```
 .
 ├── rug_checker.py       # Scoring anti-rug (mint/freeze authority, LP, holders, honeypot)
-├── sniper_engine.py     # Détection de nouveaux pools + exécution des achats (à venir)
+├── sniper_engine.py     # Détection de nouveaux pools + exécution des achats/ventes (Jupiter)
 ├── telegram_bot.py      # POINT D'ENTREE PRINCIPAL — orchestre détection, scoring, alertes, commandes
 ├── .env                 # Config (à créer, jamais commité)
 ├── .env.example          # Modèle de configuration
@@ -122,3 +122,13 @@ mais ne l'élimine pas :
 - N'investis jamais plus que ce que tu es prêt à perdre entièrement
 - Teste d'abord avec de très petits montants (`BUY_AMOUNT_SOL` bas) avant de
   scaler
+
+## Limite connue à corriger avant utilisation réelle
+
+L'extraction de l'adresse mint depuis les logs WebSocket dans
+`sniper_engine.py::_extract_mint_from_logs()` est un placeholder : elle
+détecte qu'une création de token a eu lieu, mais ne récupère pas encore le
+mint exact. Il faut compléter `get_mint_from_signature()` en parsant la
+transaction complète (`getTransaction`) pour extraire le bon compte selon
+l'IDL du programme Pump.fun. Tant que ce n'est pas fait, le bot ne détectera
+aucun token en conditions réelles.

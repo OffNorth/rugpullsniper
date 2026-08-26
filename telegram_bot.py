@@ -29,6 +29,7 @@ from telegram.ext import (
 )
 
 from rug_checker import RugChecker, MIN_SCORE_TO_BUY
+from sniper_engine import listen_new_pools, execute_buy, execute_sell, get_jupiter_honeypot_check
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -107,25 +108,44 @@ async def cmd_buy(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             "Achat manuel non recommandé sans scoring — abandon par sécurité."
         )
         return
-    # TODO: brancher ici l'appel réel à sniper_engine.execute_buy(mint, ...)
-    await update.message.reply_text(
-        f"Achat manuel demandé pour `{mint[:8]}...` (score {WATCHLIST[mint]['score']}/100).\n"
-        f"⚠️ Exécution réelle non encore branchée — voir sniper_engine.py.",
-        parse_mode=ParseMode.MARKDOWN,
-    )
+    # Exécution réelle de l'achat
+    await update.message.reply_text(f"Achat en cours pour `{mint[:8]}...`...", parse_mode=ParseMode.MARKDOWN)
+    signature = await execute_buy(mint)
+    if signature:
+        await update.message.reply_text(
+            f"✅ Achat exécuté : `{signature[:16]}...`\n"
+            f"https://solscan.io/tx/{signature}",
+            parse_mode=ParseMode.MARKDOWN,
+        )
+    else:
+        await update.message.reply_text("❌ Echec de l'achat — voir les logs du bot.")
 
 
 async def cmd_sell(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not context.args:
-        await update.message.reply_text("Usage : /sell <adresse_du_mint>")
+    if len(context.args) < 2:
+        await update.message.reply_text(
+            "Usage : /sell <adresse_du_mint> <montant_en_unites_token>\n"
+            "(vérifie le solde exact via un explorer si besoin — la vente totale "
+            "automatique du solde n'est pas encore implémentée)"
+        )
         return
     mint = context.args[0]
-    # TODO: brancher ici l'appel réel à sniper_engine.execute_sell(mint, ...)
-    await update.message.reply_text(
-        f"Vente manuelle demandée pour `{mint[:8]}...`.\n"
-        f"⚠️ Exécution réelle non encore branchée — voir sniper_engine.py.",
-        parse_mode=ParseMode.MARKDOWN,
-    )
+    try:
+        amount_tokens = int(context.args[1])
+    except ValueError:
+        await update.message.reply_text("Le montant doit être un nombre entier (unités brutes du token).")
+        return
+
+    await update.message.reply_text(f"Vente en cours pour `{mint[:8]}...`...", parse_mode=ParseMode.MARKDOWN)
+    signature = await execute_sell(mint, amount_tokens)
+    if signature:
+        await update.message.reply_text(
+            f"✅ Vente exécutée : `{signature[:16]}...`\n"
+            f"https://solscan.io/tx/{signature}",
+            parse_mode=ParseMode.MARKDOWN,
+        )
+    else:
+        await update.message.reply_text("❌ Echec de la vente — voir les logs du bot.")
 
 
 # ---------------------------------------------------------------------------
@@ -148,13 +168,13 @@ async def send_alert(app: Application, mint: str, result) -> None:
     BOT_STATE["alerts_sent"] += 1
 
 
-async def on_new_pool_detected(app: Application, mint: str, jupiter_quote_fn=None) -> None:
+async def on_new_pool_detected(app: Application, mint: str) -> None:
     """
     À appeler depuis sniper_engine.py à chaque nouveau pool détecté sur
     Pump.fun/Raydium. Fait le scoring puis décide alerte/achat.
     """
     async with RugChecker(min_score=MIN_SCORE_TO_BUY) as checker:
-        result = await checker.evaluate(mint, jupiter_quote_fn=jupiter_quote_fn)
+        result = await checker.evaluate(mint, jupiter_quote_fn=get_jupiter_honeypot_check)
 
     WATCHLIST[mint] = {"score": result.score, "details": result.details}
     BOT_STATE["checked_count"] += 1
@@ -166,29 +186,42 @@ async def on_new_pool_detected(app: Application, mint: str, jupiter_quote_fn=Non
     await send_alert(app, mint, result)
 
     if result.passed and AUTO_BUY:
-        # TODO: brancher sniper_engine.execute_buy(mint, amount_sol=...)
         logger.info(f"AUTO_BUY activé — achat automatique déclenché pour {mint}")
-        await app.bot.send_message(
-            chat_id=TELEGRAM_CHAT_ID,
-            text=f"🤖 Achat automatique déclenché pour `{mint[:8]}...`",
-            parse_mode=ParseMode.MARKDOWN,
-        )
+        signature = await execute_buy(mint)
+        if signature:
+            await app.bot.send_message(
+                chat_id=TELEGRAM_CHAT_ID,
+                text=f"🤖 Achat automatique exécuté pour `{mint[:8]}...`\nhttps://solscan.io/tx/{signature}",
+                parse_mode=ParseMode.MARKDOWN,
+            )
+        else:
+            await app.bot.send_message(
+                chat_id=TELEGRAM_CHAT_ID,
+                text=f"🤖❌ Achat automatique échoué pour `{mint[:8]}...`",
+                parse_mode=ParseMode.MARKDOWN,
+            )
 
 
 async def pool_detection_loop(app: Application) -> None:
     """
-    Placeholder de boucle de détection. À remplacer par la vraie connexion
-    WebSocket vers le programme Pump.fun/Raydium (voir sniper_engine.py).
+    Boucle de détection réelle, branchée sur sniper_engine.listen_new_pools().
+
+    NOTE : listen_new_pools() ne yield actuellement un mint que si
+    _extract_mint_from_logs() parvient à l'extraire (voir sniper_engine.py) —
+    cette extraction nécessite encore un raffinement (parsing getTransaction)
+    avant de fonctionner pleinement en conditions réelles.
     """
     BOT_STATE["running"] = True
-    logger.info("Boucle de détection démarrée (placeholder — brancher sniper_engine.py ici).")
-    # Exemple d'intégration future :
-    #
-    # from sniper_engine import listen_new_pools
-    # async for mint in listen_new_pools():
-    #     await on_new_pool_detected(app, mint)
-    while True:
-        await asyncio.sleep(3600)  # ne fait rien tant que sniper_engine n'est pas branché
+    logger.info("Boucle de détection démarrée — écoute des nouveaux pools Pump.fun.")
+    try:
+        async for mint in listen_new_pools():
+            try:
+                await on_new_pool_detected(app, mint)
+            except Exception as e:
+                logger.error(f"Erreur lors du traitement du mint {mint}: {e}")
+    except Exception as e:
+        logger.error(f"Boucle de détection interrompue : {e}")
+        BOT_STATE["running"] = False
 
 
 # ---------------------------------------------------------------------------
