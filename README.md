@@ -208,3 +208,21 @@ mint exact. Il faut compléter `get_mint_from_signature()` en parsant la
 transaction complète (`getTransaction`) pour extraire le bon compte selon
 l'IDL du programme Pump.fun. Tant que ce n'est pas fait, le bot ne détectera
 aucun token en conditions réelles.
+
+# 👤 Auteur
+
+**ZigXBT**
+
+GitHub : [@OffNorth](https://github.com/OffNorth)
+
+X / Twitter : [@zigxbt](https://x.com/zigxbt)
+
+Instagram : [@zigxbt](https://instagram.com/zigxbt)
+
+TikTok : [@zigxbt](https://tiktok.com/@zigxbt)
+
+---
+
+# ⭐ Support
+
+Si le projet vous est utile, vous pouvez laisser une ⭐ au repository GitHub.
