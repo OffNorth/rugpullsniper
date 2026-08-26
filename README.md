@@ -16,11 +16,10 @@ directement sur Telegram.
 └── requirements.txt
 ```
 
-`telegram_bot.py` importe directement `rug_checker.py` : chaque nouveau token
-détecté passe par `RugChecker.evaluate()` avant qu'une alerte ou un achat
-ne soit déclenché. `sniper_engine.py` viendra s'y brancher pour la détection
-de pools en temps réel et l'exécution des transactions (actuellement un
-placeholder dans `pool_detection_loop()`).
+`telegram_bot.py` importe directement `rug_checker.py` et `sniper_engine.py` :
+chaque nouveau token détecté passe par `RugChecker.evaluate()` avant qu'une
+alerte ou un achat ne soit déclenché, et les commandes `/buy`/`/sell`
+exécutent de vraies transactions via `sniper_engine.py`.
 
 ## Prérequis
 
@@ -32,13 +31,90 @@ placeholder dans `pool_detection_loop()`).
 
 ## Installation
 
+### Linux / macOS
+
 ```bash
-git clone https://github.com/OffNorth/rugpullsniper.git
-cd rugpullsniper
+# 1. Cloner le repo
+git clone <ton-repo>
+cd <ton-repo>
+
+# 2. Vérifier que Python 3.10+ est installé
+python3 --version
+
+# 3. Créer et activer un environnement virtuel
 python3 -m venv venv
-source venv/bin/activate  # Windows : venv\Scripts\activate
+source venv/bin/activate
+
+# 4. Installer les dépendances
 pip install -r requirements.txt
+
+# 5. Créer le fichier de config
+cp .env.example .env
+nano .env   # ou vim/gedit — remplis tes propres valeurs
+
+# 6. Lancer le bot
+python3 telegram_bot.py
 ```
+
+Pour désactiver l'environnement virtuel plus tard : `deactivate`.
+
+### Windows
+
+**Option A — PowerShell (recommandé)**
+
+```powershell
+# 1. Cloner le repo
+git clone <ton-repo>
+cd <ton-repo>
+
+# 2. Vérifier que Python 3.10+ est installé
+python --version
+
+# 3. Créer et activer un environnement virtuel
+python -m venv venv
+venv\Scripts\Activate.ps1
+```
+
+Si PowerShell bloque le script avec une erreur d'exécution de policy, lance
+d'abord (une seule fois, en administrateur) :
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+```powershell
+# 4. Installer les dépendances
+pip install -r requirements.txt
+
+# 5. Créer le fichier de config
+copy .env.example .env
+notepad .env   # remplis tes propres valeurs
+
+# 6. Lancer le bot
+python telegram_bot.py
+```
+
+**Option B — Invite de commandes (cmd)**
+
+```cmd
+git clone <ton-repo>
+cd <ton-repo>
+python -m venv venv
+venv\Scripts\activate.bat
+pip install -r requirements.txt
+copy .env.example .env
+notepad .env
+python telegram_bot.py
+```
+
+**Notes Windows :**
+- Si `python` n'est pas reconnu, réinstalle Python depuis [python.org](https://www.python.org/downloads/)
+  en cochant bien "Add Python to PATH" pendant l'installation.
+- `git` doit être installé séparément si ce n'est pas déjà fait : [git-scm.com](https://git-scm.com/download/win)
+- Certaines dépendances (`solders`) sont écrites en Rust et distribuées en
+  binaire précompilé (wheel) — normalement aucune compilation locale n'est
+  nécessaire, mais si l'installation échoue, vérifie que tu as bien Python
+  3.10, 3.11 ou 3.12 (les wheels ne couvrent pas toujours la toute dernière
+  version de Python immédiatement après sa sortie).
 
 ### requirements.txt
 
