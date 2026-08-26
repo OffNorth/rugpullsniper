@@ -33,8 +33,8 @@ placeholder dans `pool_detection_loop()`).
 ## Installation
 
 ```bash
-git clone <ton-repo>
-cd <ton-repo>
+git clone https://github.com/OffNorth/rugpullsniper.git
+cd rugpullsniper
 python3 -m venv venv
 source venv/bin/activate  # Windows : venv\Scripts\activate
 pip install -r requirements.txt
