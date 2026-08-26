@@ -1,0 +1,6 @@
+solders
+solana
+httpx
+python-dotenv
+python-telegram-bot
+websockets
