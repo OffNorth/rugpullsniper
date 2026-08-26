@@ -35,8 +35,8 @@ exécutent de vraies transactions via `sniper_engine.py`.
 
 ```bash
 # 1. Cloner le repo
-git clone <ton-repo>
-cd <ton-repo>
+git clone https://github.com/OffNorth/rugpullsniper.git
+cd rugpullsniper
 
 # 2. Vérifier que Python 3.10+ est installé
 python3 --version
@@ -64,8 +64,8 @@ Pour désactiver l'environnement virtuel plus tard : `deactivate`.
 
 ```powershell
 # 1. Cloner le repo
-git clone <ton-repo>
-cd <ton-repo>
+git clone https://github.com/OffNorth/rugpullsniper.git
+cd rugpullsniper
 
 # 2. Vérifier que Python 3.10+ est installé
 python --version
@@ -96,8 +96,8 @@ python telegram_bot.py
 **Option B — Invite de commandes (cmd)**
 
 ```cmd
-git clone <ton-repo>
-cd <ton-repo>
+git clone https://github.com/OffNorth/rugpullsniper.git
+cd rugpullsniper
 python -m venv venv
 venv\Scripts\activate.bat
 pip install -r requirements.txt
